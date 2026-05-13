@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Monster-Zoo Sikkerhed</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: #1a1a2e; color: white; 
+            height: 100dvh; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; overflow: hidden;
+        }
+
+        #game-area { width: 90%; max-width: 400px; text-align: center; }
+        .enclosure { 
+            background: #16213e; margin: 20px auto; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px dashed #444; transition: all 0.3s ease;
+        }
+        .monster { font-size: 3rem; transition: transform 0.3s ease; }
+        
+        @keyframes escape {
+            0% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(2) translate(0, -50px); }
+            100% { transform: scale(1) translate(0, 0); }
+        }
+        @keyframes zap {
+            0% { filter: brightness(1); transform: rotate(0deg); }
+            25% { filter: brightness(3) sepia(1) hue-rotate(-50deg); transform: rotate(10deg); }
+            50% { filter: invert(1); transform: rotate(-10deg); }
+            100% { filter: grayscale(1) brightness(0.2); transform: rotate(0deg); }
+        }
+        .anim-escape { animation: escape 1.5s ease; }
+        .anim-zap { animation: zap 1s ease forwards; }
+        .success-fence { border: 4px solid #0f3 !important; box-shadow: 0 0 15px #0f3; }
+
+        input[type="number"] {
+            width: 100%; padding: 15px; font-size: 1.2rem; border-radius: 8px;
+            border: none; margin-bottom: 10px; text-align: center;
+            background: #e94560; color: white; font-weight: bold;
+        }
+        input::placeholder { color: #f1a1b0; }
+        
+        .btn {
+            width: 100%; padding: 15px; font-size: 1.2rem; border-radius: 8px;
+            border: none; color: white; font-weight: bold; cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-action { background: #0f3460; }
+        .btn-help { background: #d4af37; font-size: 1rem; }
+        .btn:active { transform: scale(0.98); }
+        
+        .measurements { font-size: 1.1rem; color: #a2a2d0; margin-bottom: 10px; font-weight: bold;}
+        
+        /* Blueprint / Formel Overlay */
+        #blueprint {
+            display: none; background: rgba(0, 0, 0, 0.9); border: 2px solid #d4af37;
+            padding: 20px; border-radius: 10px; margin-bottom: 15px; text-align: left;
+        }
+        .math-text { font-family: monospace; color: #0f3; font-size: 1.1rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="game-area">
+    <h2>Bestil Laserhegn</h2>
+    <p class="measurements" id="dimensions">Mål: Laster...</p>
+    
+    <div id="blueprint">
+        <h3>Arbejdstegning (Omkreds)</h3>
+        <p style="font-size: 0.9rem; margin-top: 5px; color: #ccc;">Omkreds er længden af alle sider lagt sammen. På et rektangel er to og to sider lige lange.</p>
+        <div class="math-text" id="formula-display"></div>
+    </div>
+
+    <div id="enclosure" class="enclosure" style="width: 200px; height: 150px;">
+        <div id="monster" class="monster">👾</div>
+    </div>
+
+    <button class="btn btn-help" onclick="toggleBlueprint()">Vis Arbejdstegning (Formel)</button>
+    <input type="number" id="userGuess" placeholder="Mængde hegn (meter)" pattern="[0-9]*" inputmode="numeric">
+    <button class="btn btn-action" onclick="checkFence()">Aktiver Hegn!</button>
+</div>
+
+<script>
+    let currentWidth, currentHeight, targetPerimeter;
+
+    function initLevel() {
+        currentWidth = Math.floor(Math.random() * 9) + 2;
+        currentHeight = Math.floor(Math.random() * 9) + 2;
+        targetPerimeter = 2 * (currentWidth + currentHeight);
+        
+        document.getElementById('dimensions').innerText = `Bredde: ${currentWidth}m | Længde: ${currentHeight}m`;
+        
+        // Opdater formel dynamisk
+        const formulaDisplay = document.getElementById('formula-display');
+        formulaDisplay.innerHTML = `
+            Formel: P = 2 &times; (Længde + Bredde)<br>
+            Udregning: 2 &times; (${currentHeight} + ${currentWidth})<br>
+            Eller: ${currentHeight} + ${currentWidth} + ${currentHeight} + ${currentWidth}
+        `;
+        
+        document.getElementById('enclosure').className = 'enclosure';
+        document.getElementById('monster').className = 'monster';
+        document.getElementById('monster').innerText = '👾';
+        document.getElementById('userGuess').value = '';
+        document.getElementById('blueprint').style.display = 'none';
+    }
+
+    function toggleBlueprint() {
+        const bp = document.getElementById('blueprint');
+        bp.style.display = bp.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function checkFence() {
+        const guess = parseInt(document.getElementById('userGuess').value);
+        const monster = document.getElementById('monster');
+        const enclosure = document.getElementById('enclosure');
+        
+        monster.className = 'monster';
+        void monster.offsetWidth; 
+
+        if (isNaN(guess)) return;
+
+        if (guess === targetPerimeter) {
+            enclosure.classList.add('success-fence');
+            monster.innerText = '😎';
+            setTimeout(() => {
+                alert("Perfekt pasform! Næste monster...");
+                initLevel();
+            }, 1000);
+        } else if (guess < targetPerimeter) {
+            monster.classList.add('anim-escape');
+            document.getElementById('dimensions').innerText = "Hul i hegnet! Monstret slap ud!";
+        } else {
+            monster.classList.add('anim-zap');
+            document.getElementById('dimensions').innerText = "Kortslutning! For meget hegn!";
+            setTimeout(() => { monster.innerText = '💀'; }, 1000);
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
